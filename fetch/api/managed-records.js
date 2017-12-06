@@ -6,17 +6,19 @@ window.path = 'http://localhost:3000/records';
 
 function retrieve(options = {}) {
   var page = options.page && options.page > 1 ? options.page : 1;
+  var index = (page - 1) * 10;
 
   return fetchRecords(options.colors)
     .then(results => {
-      var records = results[page - 1];
+      var pageRecords = results.splice(index, 10);
+      var lastPage = results.length / 10;
 
       return {
-        ids: getIDs(records),
-        open: getOpen(records),
-        closedPrimaryCount: getClosed(records),
+        ids: getIDs(pageRecords),
+        open: getOpen(pageRecords),
+        closedPrimaryCount: getClosed(pageRecords),
         previousPage: getPreviousPage(page),
-        nextPage: getNextPage(page, results.length),
+        nextPage: getNextPage(page, lastPage),
       };
     })
     .catch(error => {
@@ -26,18 +28,19 @@ function retrieve(options = {}) {
 
 function fetchRecords(colors, offset = 0, results = []) {
   var uri = URI(window.path).search({
-    limit: 10,
+    limit: 100,
     offset,
     'color[]': colors,
   });
+
   return fetch(uri.toString())
     .then(res => res.json())
     .then(json => {
       if (json.length > 0) {
-        results.push(json);
+        results = results.concat(json);
       }
-      if (json.length === 10) {
-        return fetchRecords(colors, offset + 10, results);
+      if (json.length === 100) {
+        return fetchRecords(colors, offset + 100, results);
       } else {
         return results;
       }
@@ -45,6 +48,10 @@ function fetchRecords(colors, offset = 0, results = []) {
     .catch(error => {
       console.log(`Error: ${error}`);
     });
+}
+
+function isPrimary(color) {
+  return ['red', 'blue', 'yellow'].includes(color);
 }
 
 function getIDs(json = []) {
@@ -59,10 +66,6 @@ function getOpen(json = []) {
     obj.isPrimary = isPrimary(obj.color);
     return obj;
   });
-}
-
-function isPrimary(color) {
-  return ['red', 'blue', 'yellow'].includes(color);
 }
 
 function getClosed(json = []) {
