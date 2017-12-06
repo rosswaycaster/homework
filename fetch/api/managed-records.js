@@ -5,7 +5,7 @@ import URI from 'urijs';
 window.path = 'http://localhost:3000/records';
 
 function retrieve(options = {}) {
-  var page = options.page && options.page > 1 ? options.page : 1;
+  var page = options.page > 1 ? options.page : 1;
   var index = (page - 1) * 10;
 
   return fetchRecords(options.colors)
@@ -16,7 +16,7 @@ function retrieve(options = {}) {
       return {
         ids: getIDs(pageRecords),
         open: getOpen(pageRecords),
-        closedPrimaryCount: getClosed(pageRecords),
+        closedPrimaryCount: getClosedPrimaryCount(pageRecords),
         previousPage: getPreviousPage(page),
         nextPage: getNextPage(page, lastPage),
       };
@@ -33,7 +33,7 @@ function fetchRecords(colors, offset = 0, results = []) {
     'color[]': colors,
   });
 
-  return fetch(uri.toString())
+  return fetch(uri)
     .then(res => res.json())
     .then(json => {
       if (json.length > 0) {
@@ -68,7 +68,7 @@ function getOpen(json = []) {
   });
 }
 
-function getClosed(json = []) {
+function getClosedPrimaryCount(json = []) {
   return json.filter(obj => obj.disposition === 'closed' && isPrimary(obj.color)).length;
 }
 
